@@ -1,0 +1,47 @@
+{
+    "name": "scriptoshi/settings",
+    "version": "1.0.0",
+    "description": "Flexible setting manager for scriptoshi based applications",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Scriptoshi",
+            "email": "admin@scriptoshi.com"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "laravel/framework": "^11.9",
+        "inertiajs/inertia-laravel": "^1.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0.1",
+        "orchestra/testbench": "^9.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Scriptoshi\\Settings\\": "src/"
+        },
+        "files": [
+            "src/helpers.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Scriptoshi\\Settings\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Scriptoshi\\Settings\\SettingServiceProvider"
+            ],
+            "aliases": {
+                "Setting": "Scriptoshi\\Settings\\Facades\\Setting"
+            }
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
