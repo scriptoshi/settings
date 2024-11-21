@@ -47,8 +47,7 @@ class Settings
         if ($fresh) Cache::forget(static::$groupKey);
         return Cache::rememberForever(static::$cacheKey, function () {
             $dot = Setting::all()->groupBy('group')->flatMap(function (Setting $s) {
-                $val = in_array($s->val, ['true', 'false']) ? json_decode($s->val) : $s->val;
-                return ["{$s->group}.{$s->name}" => $val];
+                return ["{$s->group}.{$s->name}" => $s->val];
             });
             return  Setting::query()->pluck('val', 'name')->merge($dot);
         });
@@ -66,8 +65,7 @@ class Settings
             $settings = Setting::query()->whereIn('group', $group)->get();
             return $settings->groupBy('group')->mapWithKeys(function (Collection $list, $grp) {
                 return [$grp => $list->flatMap(function (Setting $s) {
-                    $val = in_array($s->val, ['true', 'false']) ? json_decode($s->val) : $s->val;
-                    return [$s->name => $val];
+                    return [$s->name => $s->val];
                 })];
             });
         }
@@ -75,8 +73,7 @@ class Settings
             ->where('group', $group)
             ->get()
             ->flatMap(function (Setting $s) {
-                $val = in_array($s->val, ['true', 'false']) ? json_decode($s->val) : $s->val;
-                return [$s->name => $val];
+                return [$s->name => $s->val];
             });
     }
 
@@ -101,8 +98,6 @@ class Settings
     public static function get(string $key, $default = null, bool $fresh = false): mixed
     {
         $setting = static::all($fresh)->get($key, $default);
-        if (in_array($setting, ['true', 'false']))
-            return json_decode($setting);
         return $setting;
     }
 
@@ -112,15 +107,15 @@ class Settings
      * @param $key string|array
      * @param $val string|mixed
      */
-    public static function set($key, $val = null): mixed
+    public static function set($key, $val = null, $cast = null): mixed
     {
         // if its an array, upsert
         if (is_array($key)) {
             Setting::query()
                 ->upsert(
-                    collect($key)->map(fn($value, $name) => ['name' => $name, 'val' => $value])->all(),
+                    collect($key)->map(fn($value, $name) => ['name' => $name, 'val' => $value, 'cast' => $cast])->all(),
                     uniqueBy: ['name'],
-                    update: ['val']
+                    update: ['val', 'cast']
                 );
             Cache::forget(static::$cacheKey);
             return true;
@@ -130,7 +125,7 @@ class Settings
             Setting::query()
                 ->updateOrCreate(
                     ['name' => trim($name), 'group' => trim($group)],
-                    ['val' => trim($val)]
+                    ['val' => trim($val), 'cast' => $cast]
                 );
             Cache::forget(static::$cacheKey);
             return $val;
@@ -138,7 +133,7 @@ class Settings
         Setting::query()
             ->updateOrCreate(
                 ['name' => $key],
-                ['val' => $val]
+                ['val' => $val, 'cast' => $cast]
             );
         Cache::forget(static::$cacheKey);
         return $val;

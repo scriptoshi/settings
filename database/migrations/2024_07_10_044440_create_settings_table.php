@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('name');
             $table->text('val')->nullable();
             $table->string('group');
+            $table->string('cast')->nullable();
             $table->unique(['name', 'group']);
             $table->timestamps();
         });

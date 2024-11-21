@@ -4,6 +4,7 @@ namespace Scriptoshi\Settings\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+
 class Setting extends Model
 {
 
@@ -26,7 +27,17 @@ class Setting extends Model
      *
      * @var string
      */
-
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            ...($this->cast ? ['val' => $this->cast] : []),
+        ];
+    }
 
     /**
      * Attributes that should be mass-assignable.
@@ -36,6 +47,7 @@ class Setting extends Model
     protected $fillable = [
         'name',
         'val',
-        'group'
+        'group',
+        'cast',
     ];
 }
