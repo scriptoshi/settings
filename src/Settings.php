@@ -104,39 +104,74 @@ class Settings
     /**
      * Save a setting in storage.
      *
-     * @param $key string|array
-     * @param $val string|mixed
+     * @param string|array $key
+     * @param mixed $val
+     * @param string|null $cast
+     * @return mixed
      */
-    public static function set($key, $val = null, $cast = null): mixed
+    public static function set(string|array $key, mixed $val = null, ?string $cast = null): mixed
     {
-        // if its an array, upsert
+        // Handle batch updates with an array
         if (is_array($key)) {
             Setting::query()
                 ->upsert(
-                    collect($key)->map(fn($value, $name) => ['name' => $name, 'val' => $value, 'cast' => $cast])->all(),
-                    uniqueBy: ['name'],
-                    update: ['val', 'cast']
+                    collect($key)->map(function ($value, $name) use ($cast) {
+                        [$group, $name] = str($name)->contains('.') ? explode('.', $name, 2) : [null, $name];
+                        $setting = Setting::query()
+                            ->where('name', $name)
+                            ->where('group', $group)
+                            ->first();
+                        $useCast = $setting?->cast ?? $cast;
+                        return [
+                            'name' => trim($name),
+                            'group' => $group ? trim($group) : null,
+                            'val' => $value,
+                            ...($useCast ? ['cast' => $useCast] : [])
+                        ];
+                    })->all(),
+                    uniqueBy: ['name', 'group'], // Ensure unique key constraint is met
+                    update: ['val', 'cast'] // Fields to update
                 );
             Cache::forget(static::$cacheKey);
             return true;
         }
+
+        // Handle single key updates
+        $group = null;
         if (str($key)->contains('.')) {
-            [$group, $name] = explode('.', $key);
-            Setting::query()
-                ->updateOrCreate(
-                    ['name' => trim($name), 'group' => trim($group)],
-                    ['val' => trim($val), 'cast' => $cast]
-                );
-            Cache::forget(static::$cacheKey);
-            return $val;
+            [$group, $key] = explode('.', $key, 2);
         }
+        $setting = Setting::query()
+            ->where('name', $key)
+            ->where(
+                'group',
+                $group
+            )
+            ->first();
+        $useCast = $setting?->cast ?? $cast;
         Setting::query()
             ->updateOrCreate(
-                ['name' => $key],
-                ['val' => $val, 'cast' => $cast]
+                ['name' => trim($key), 'group' => $group ? trim($group) : null],
+                [
+                    'val' => $val,
+                    ...($useCast ? ['cast' => $useCast] : [])
+                ]
             );
+
         Cache::forget(static::$cacheKey);
         return $val;
+    }
+
+
+    /**
+     * Save a setting in storage.
+     *
+     * @param $key string|array
+     * @param $val string|mixed
+     */
+    public static function setCast($key, $cast = null): void
+    {
+        Setting::query()->where('name', $key)->update(['cast' => $cast]);
     }
 
     /**

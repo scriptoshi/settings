@@ -19,6 +19,14 @@ class SettingsTest extends TestCase
     }
 
     #[Test]
+    public function it_can_store_castables_and_retrieve_settings()
+    {
+        Settings::set('app.locked', true, 'boolean');
+        Settings::set('app.locked', false);
+        $this->assertIsBool(Settings::get('app.locked'));
+    }
+
+    #[Test]
     public function it_can_group_settings()
     {
         Settings::set('group1.setting1', 'value1');
@@ -28,6 +36,8 @@ class SettingsTest extends TestCase
         $this->assertArrayHasKey('setting1', $group);
         $this->assertArrayHasKey('setting2', $group);
     }
+
+
 
     #[Test]
     public function it_caches_settings()
